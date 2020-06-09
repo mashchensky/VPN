@@ -1,0 +1,33 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: install epel-release repo
+      yum: name=epel-release state=latest 
+
+    - name: install packages
+      yum: name="{{ packages }}" state=latest 
+      vars:
+        packages:
+          - openvpn
+          - easy-rsa
+
+    - name: disable selinux
+      selinux: state=disabled
+
+    - name: all
+      lineinfile:
+        create: yes
+        line: 'iroute 192.168.33.0 255.255.255.0'
+        path: /etc/openvpn/client/client
+
+    - name: copy config, certs and keys
+      copy:
+        src: provisioning/
+        dest: /etc/openvpn/
+
+    - name: start OpenVPN client
+      systemd:
+        name: openvpn@server
+        enabled: yes
+        state: started
