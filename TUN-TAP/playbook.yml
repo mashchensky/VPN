@@ -1,0 +1,41 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    dev: tun
+  tasks:
+    - name: install epel-release repo
+      yum: name=epel-release state=latest 
+
+    - name: install packages
+      yum: name="{{ packages }}" state=latest 
+      vars:
+        packages:
+          - openvpn
+          - iperf3
+
+    - name: disable selinux
+      selinux: state=disabled
+
+    - name: copy secret key
+      copy:
+        src: provisioning/static.key
+        dest: /etc/openvpn/
+        owner: root
+        group: root
+        mode: 0600
+
+    - name: copy OpenVPN config
+      template:
+        src: "provisioning/{{ inventory_hostname }}.conf.j2"
+        dest: /etc/openvpn/server.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: start OpenVPN client
+      systemd:
+        name: openvpn@server
+        enabled: yes
+        state: started
+
